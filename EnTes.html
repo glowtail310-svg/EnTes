@@ -1003,6 +1003,9 @@ function loadWords() {
         }
       });
     } else {
+      // BenDicに該当があれば意味を上書き（CSV更新が即反映される）
+      const dictHit = benDic[entry.english.toLowerCase()];
+      if (dictHit) entry.japanese = dictHit;
       registeredWords.push(entry);
       renderTag(entry);
     }
