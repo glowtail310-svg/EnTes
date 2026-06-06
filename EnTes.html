@@ -819,8 +819,8 @@ function hideSuggestions() {
   suggestions.innerHTML = '';
 }
 
-/* ===== タグ追加 ===== */
-async function addTag(word, japanese = null, save = true) {
+/* ===== タグ追加（意味は毎回取得・保存しない） ===== */
+async function addTag(word) {
   word = word.trim().toLowerCase();
   if (!word) return;
   if (registeredWords.find(w => w.english === word)) {
@@ -828,29 +828,26 @@ async function addTag(word, japanese = null, save = true) {
   }
   if (registeredWords.length >= MAX_WORDS) { alert('20個までです！'); return; }
 
-  const entry = { english: word, japanese: japanese || '' };
+  const entry = { english: word, japanese: '' };
   registeredWords.push(entry);
   renderTag(entry, true);
   updateCounter();
-  if (save) saveWords();
+  saveWords(); // 英単語だけ保存
   wordInput.value = '';
   hideSuggestions();
 
-  if (!japanese) {
-    const jp = await fetchMeaning(word);
-    entry.japanese = jp || word;
-    const tagEl = tagsEl.querySelector(`[data-word="${word}"]`);
-    if (tagEl) {
-      const jpSpan = tagEl.querySelector('.jp');
-      if (jpSpan) {
-        jpSpan.textContent = entry.japanese;
-        const dot = tagEl.querySelector('.loading-dot');
-        if (dot) dot.remove();
-      }
-      // レベルバッジ更新
-      updateTagBadge(word, tagEl);
+  // BenDic → API で意味を取得（保存はしない）
+  const jp = await fetchMeaning(word);
+  entry.japanese = jp || word;
+  const tagEl = tagsEl.querySelector(`[data-word="${word}"]`);
+  if (tagEl) {
+    const jpSpan = tagEl.querySelector('.jp');
+    if (jpSpan) {
+      jpSpan.textContent = entry.japanese;
+      const dot = tagEl.querySelector('.loading-dot');
+      if (dot) dot.remove();
     }
-    if (save) saveWords();
+    updateTagBadge(word, tagEl);
   }
 }
 
@@ -977,38 +974,43 @@ function updateCounter() {
   else limitText.textContent = 'テスト開始できます！';
 }
 
-/* ===== LocalStorage ===== */
+/* ===== LocalStorage（英単語だけ保存・意味は毎回取得） ===== */
 function saveWords() {
-  localStorage.setItem('registeredWords_v2', JSON.stringify(registeredWords));
+  // 英単語のリストだけ保存（意味はキャッシュしない）
+  const words = registeredWords.map(w => w.english);
+  localStorage.setItem('registeredWords_v3', JSON.stringify(words));
 }
 function loadWords() {
-  const raw = localStorage.getItem('registeredWords_v2');
-  if (!raw) return;
-  const data = JSON.parse(raw);
-  data.forEach(entry => {
-    if (typeof entry === 'string') {
-      registeredWords.push({ english: entry, japanese: '' });
-      renderTag({ english: entry, japanese: '' }, true);
-      fetchMeaning(entry).then(jp => {
-        const e = registeredWords.find(w => w.english === entry);
-        if (e) {
-          e.japanese = jp || entry;
-          const tagEl = tagsEl.querySelector(`[data-word="${entry}"]`);
-          if (tagEl) {
-            const jpSpan = tagEl.querySelector('.jp');
-            if (jpSpan) { jpSpan.innerHTML = e.japanese; }
-            updateTagBadge(entry, tagEl);
-          }
-          saveWords();
-        }
-      });
-    } else {
-      // BenDicに該当があれば意味を上書き（CSV更新が即反映される）
-      const dictHit = benDic[entry.english.toLowerCase()];
-      if (dictHit) entry.japanese = dictHit;
-      registeredWords.push(entry);
-      renderTag(entry);
-    }
+  // v3（英単語のみ）を優先、v2（旧形式）もマイグレーション対応
+  let words = [];
+  const rawV3 = localStorage.getItem('registeredWords_v3');
+  if (rawV3) {
+    words = JSON.parse(rawV3); // string[]
+  } else {
+    const rawV2 = localStorage.getItem('registeredWords_v2');
+    if (!rawV2) return;
+    const data = JSON.parse(rawV2);
+    words = data.map(e => typeof e === 'string' ? e : e.english);
+    // v3形式に移行して古いキーを削除
+    localStorage.setItem('registeredWords_v3', JSON.stringify(words));
+    localStorage.removeItem('registeredWords_v2');
+  }
+  words.forEach(english => {
+    const entry = { english, japanese: '' };
+    registeredWords.push(entry);
+    renderTag(entry, true); // loading表示
+    // 毎回 BenDic → API で意味を取得
+    fetchMeaning(english).then(jp => {
+      entry.japanese = jp || english;
+      const tagEl = tagsEl.querySelector(`[data-word="${english}"]`);
+      if (tagEl) {
+        const jpSpan = tagEl.querySelector('.jp');
+        if (jpSpan) jpSpan.textContent = entry.japanese;
+        const dot = tagEl.querySelector('.loading-dot');
+        if (dot) dot.remove();
+        updateTagBadge(english, tagEl);
+      }
+    });
   });
   updateCounter();
 }
