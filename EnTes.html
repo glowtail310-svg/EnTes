@@ -704,9 +704,19 @@ function cleanTranslation(t, originalWord) {
 async function fetchMeaning(word) {
   const trimmed = word.trim();
 
-  // ０ BenDic.csv に登録済みならそれを最優先で返す
   const dictHit = benDic[trimmed.toLowerCase()];
-  if (dictHit) return dictHit;
+
+  console.log(
+    "検索単語:",
+    trimmed.toLowerCase(),
+    "BenDic結果:",
+    dictHit
+  );
+  if (dictHit) {
+    console.log("BenDic採用");
+    return dictHit;
+  }
+  console.log("API採用");
 
   // ① Free Dictionary API で品詞と第一義を取得
   try {
