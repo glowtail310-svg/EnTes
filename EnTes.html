@@ -391,6 +391,107 @@
 
     .hidden { display: none !important; }
 
+    /* ── もっと覚えるセクション ── */
+    .learn-btn-wrap {
+      display: flex; justify-content: center;
+      margin-top: 28px; padding-top: 20px;
+      border-top: 1.5px solid var(--line);
+    }
+    .btn-learn-more {
+      border: 2px solid var(--accent);
+      border-radius: 14px;
+      padding: 12px 32px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800; font-size: 15px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: .2px;
+    }
+    .btn-learn-more:hover {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(79,70,229,.35);
+    }
+    .btn-learn-more.open {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .learn-section {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .6s cubic-bezier(.4,0,.2,1);
+    }
+    .learn-section.open {
+      max-height: 9999px;
+    }
+    .learn-inner {
+      padding-top: 20px;
+    }
+    .learn-title {
+      font-size: 13px; font-weight: 800; color: var(--muted);
+      margin-bottom: 12px; letter-spacing: .5px;
+    }
+
+    /* 単語カード */
+    .learn-card {
+      background: linear-gradient(135deg, #f8f9ff 0%, #f3f0ff 100%);
+      border: 1.5px solid #c7d2fe;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 10px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .4s ease, transform .4s ease;
+    }
+    .learn-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .learn-card-top {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 10px;
+    }
+    .learn-card-word {
+      font-family: 'DM Mono', monospace;
+      font-size: 22px; font-weight: 700;
+      color: var(--text); letter-spacing: -.5px;
+    }
+    .learn-card-ipa {
+      font-family: 'DM Mono', monospace;
+      font-size: 14px; color: var(--accent2);
+      font-weight: 500; margin-top: 4px;
+    }
+    .learn-card-jp {
+      font-size: 14px; color: var(--muted);
+      font-weight: 700; margin-top: 6px;
+    }
+    .btn-speak {
+      border: none;
+      background: rgba(79,70,229,.1);
+      color: var(--accent);
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+      display: grid; place-items: center;
+    }
+    .btn-speak:hover {
+      background: var(--accent);
+      color: #fff;
+      transform: scale(1.1);
+    }
+    .btn-speak:active { transform: scale(.95); }
+
+    .learn-loading {
+      text-align: center; padding: 16px 0;
+      font-size: 13px; color: var(--muted); font-weight: 700;
+    }
+
     @media (max-width: 480px) {
       .container { padding: 18px 14px; }
       .q-word { font-size: 28px; }
@@ -450,6 +551,17 @@
     <div class="actions">
       <button id="startTestBtn" class="btn btn-primary" type="button" disabled>テスト開始 →</button>
       <button id="showNotesBtn" class="btn btn-secondary" type="button">📝 間違いノート</button>
+    </div>
+
+    <!-- ── もっと覚える ── -->
+    <div class="learn-btn-wrap">
+      <button id="learnMoreBtn" class="btn-learn-more" type="button">🔊 もっと覚える</button>
+    </div>
+    <div class="learn-section" id="learnSection">
+      <div class="learn-inner">
+        <div class="learn-title">📖 発音・意味チェック</div>
+        <div id="learnCardList"></div>
+      </div>
     </div>
   </section>
 
@@ -700,58 +812,85 @@ function cleanTranslation(t, originalWord) {
   return words.join('、');
 }
 
-/* ===== 意味取得（BenDic → Free Dictionary API → MyMemory） ===== */
-async function fetchMeaning(word) {
+/* ===== 意味＋IPA を1回のAPIコールでまとめて取得 ===== */
+// 返り値: { japanese: string|null, ipa: string|null }
+async function fetchMeaningAndPhonetic(word) {
   const trimmed = word.trim();
+  const key = trimmed.toLowerCase();
 
-  const dictHit = benDic[trimmed.toLowerCase()];
+  // BenDicヒット時は意味だけ確定、IPAはAPIから取る
+  const dictHit = benDic[key];
+  console.log("検索単語:", key, "BenDic結果:", dictHit);
 
-  console.log(
-    "検索単語:",
-    trimmed.toLowerCase(),
-    "BenDic結果:",
-    dictHit
-  );
-  if (dictHit) {
-    console.log("BenDic採用");
-    return dictHit;
-  }
-  console.log("API採用");
+  let ipa = null;
+  let japanese = null;
 
-  // ① Free Dictionary API で品詞と第一義を取得
+  // Free Dictionary API を1回だけ呼ぶ
   try {
     const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(trimmed)}`);
     if (r.ok) {
       const d = await r.json();
-      const meaning = d?.[0]?.meanings?.[0];
-      const def = meaning?.definitions?.[0]?.definition ?? '';
-      const shortDef = meaning?.definitions?.[0]?.shortDef ?? '';
 
-      let useDef = (shortDef || def).replace(/\(.*?\)/g, '').trim();
-      if (useDef.length > 40) useDef = '';
-
-      if (useDef) {
-        try {
-          const r2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(useDef)}&langpair=en|ja`);
-          if (r2.ok) {
-            const d2 = await r2.json();
-            const t = cleanTranslation(d2?.responseData?.translatedText ?? '', trimmed);
-            if (t) return t;
-          }
-        } catch {}
+      // IPA抽出
+      const phonetics = d?.[0]?.phonetics ?? [];
+      for (const p of phonetics) {
+        if (p.text && p.text.trim()) { ipa = p.text.trim(); break; }
       }
-    }
-  } catch {}
+      if (!ipa) ipa = d?.[0]?.phonetic ?? null;
 
-  // ② フォールバック：単語そのものをMyMemoryで翻訳
-  try {
-    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=en|ja`);
-    if (!r.ok) throw new Error();
-    const d = await r.json();
-    const t = cleanTranslation(d?.responseData?.translatedText ?? '', trimmed);
-    if (t) return t;
-  } catch {}
-  return null;
+      // BenDicヒットなら意味はそちら優先
+      if (dictHit) {
+        console.log("BenDic採用");
+        japanese = dictHit;
+      } else {
+        // 定義文をMyMemoryで翻訳
+        console.log("API採用");
+        const meaning = d?.[0]?.meanings?.[0];
+        const def = meaning?.definitions?.[0]?.definition ?? '';
+        let useDef = def.replace(/\(.*?\)/g, '').trim();
+        if (useDef.length > 40) useDef = '';
+        if (useDef) {
+          try {
+            const r2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(useDef)}&langpair=en|ja`);
+            if (r2.ok) {
+              const d2 = await r2.json();
+              const t = cleanTranslation(d2?.responseData?.translatedText ?? '', trimmed);
+              if (t) japanese = t;
+            }
+          } catch {}
+        }
+      }
+    } else if (dictHit) {
+      // APIが失敗してもBenDicがあれば使う
+      console.log("BenDic採用（API失敗）");
+      japanese = dictHit;
+    }
+  } catch {
+    if (dictHit) {
+      console.log("BenDic採用（API例外）");
+      japanese = dictHit;
+    }
+  }
+
+  // 意味がまだ取れていなければMyMemoryフォールバック
+  if (!japanese) {
+    try {
+      const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=en|ja`);
+      if (r.ok) {
+        const d = await r.json();
+        const t = cleanTranslation(d?.responseData?.translatedText ?? '', trimmed);
+        if (t) japanese = t;
+      }
+    } catch {}
+  }
+
+  return { japanese, ipa };
+}
+
+// 後方互換ラッパー（既存コードからの呼び出しに対応）
+async function fetchMeaning(word) {
+  const { japanese } = await fetchMeaningAndPhonetic(word);
+  return japanese;
 }
 
 /* ===== Datamuse: sl + rel_syn + ml の3種を全取得 ===== */
@@ -846,9 +985,10 @@ async function addTag(word) {
   wordInput.value = '';
   hideSuggestions();
 
-  // BenDic → API で意味を取得（保存はしない）
-  const jp = await fetchMeaning(word);
+  // BenDic → API で意味＋IPAを1回のリクエストで取得
+  const { japanese: jp, ipa } = await fetchMeaningAndPhonetic(word);
   entry.japanese = jp || word;
+  entry.ipa = ipa || '';
   const tagEl = tagsEl.querySelector(`[data-word="${word}"]`);
   if (tagEl) {
     const jpSpan = tagEl.querySelector('.jp');
@@ -902,6 +1042,7 @@ function renderTag(entry, loading = false) {
       tagsEl.appendChild(el);
     }
     updateCounter(); saveWords();
+    resetLearnSection();
   };
   tag.appendChild(btn);
   tagsEl.appendChild(tag);
@@ -972,6 +1113,7 @@ document.getElementById('clearAllBtn').addEventListener('click', () => {
   registeredWords = [];
   tagsEl.innerHTML = '<div id="emptyState" class="empty">まだ単語が登録されていません。</div>';
   updateCounter(); saveWords();
+  resetLearnSection();
 });
 
 /* ===== カウンター更新 ===== */
@@ -1006,12 +1148,13 @@ function loadWords() {
     localStorage.removeItem('registeredWords_v2');
   }
   words.forEach(english => {
-    const entry = { english, japanese: '' };
+    const entry = { english, japanese: '', ipa: '' };
     registeredWords.push(entry);
     renderTag(entry, true); // loading表示
-    // 毎回 BenDic → API で意味を取得
-    fetchMeaning(english).then(jp => {
+    // 毎回 BenDic → API で意味＋IPAを取得（1リクエストにまとめ）
+    fetchMeaningAndPhonetic(english).then(({ japanese: jp, ipa }) => {
       entry.japanese = jp || english;
+      entry.ipa = ipa || '';
       const tagEl = tagsEl.querySelector(`[data-word="${english}"]`);
       if (tagEl) {
         const jpSpan = tagEl.querySelector('.jp');
@@ -1448,6 +1591,106 @@ function renderNotes() {
     `;
     list.appendChild(div);
   });
+}
+
+/* ===== もっと覚えるセクション ===== */
+let learnOpen = false;
+let learnRendered = false;
+
+document.getElementById('learnMoreBtn').addEventListener('click', () => {
+  learnOpen = !learnOpen;
+  const section = document.getElementById('learnSection');
+  const btn = document.getElementById('learnMoreBtn');
+
+  if (learnOpen) {
+    section.classList.add('open');
+    btn.classList.add('open');
+    btn.textContent = '✕ 閉じる';
+    if (!learnRendered) {
+      renderLearnCards();
+      learnRendered = true;
+    }
+  } else {
+    section.classList.remove('open');
+    btn.classList.remove('open');
+    btn.textContent = '🔊 もっと覚える';
+  }
+});
+
+function renderLearnCards() {
+  const container = document.getElementById('learnCardList');
+  container.innerHTML = '';
+
+  if (registeredWords.length === 0) {
+    container.innerHTML = '<div class="learn-loading">単語を登録してから開いてね！</div>';
+    return;
+  }
+
+  // カードを作成（最初は非表示）
+  const cards = registeredWords.map((entry, i) => {
+    const card = document.createElement('div');
+    card.className = 'learn-card';
+    card.innerHTML = `
+      <div class="learn-card-top">
+        <div>
+          <div class="learn-card-word">${entry.english}</div>
+          <div class="learn-card-ipa">${entry.ipa ? entry.ipa : '<span style="opacity:.4;font-size:12px;">IPA取得中…</span>'}</div>
+          <div class="learn-card-jp">${entry.japanese || '…'}</div>
+        </div>
+        <button class="btn-speak" data-word="${entry.english}" title="発音を聞く">🔊</button>
+      </div>
+    `;
+    // IPAがまだなら非同期で補完（意味は取得済みなのでIPA専用で軽量fetch）
+    if (!entry.ipa) {
+      (async () => {
+        try {
+          const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(entry.english)}`);
+          if (r.ok) {
+            const d = await r.json();
+            const phonetics = d?.[0]?.phonetics ?? [];
+            let ipa = null;
+            for (const p of phonetics) {
+              if (p.text && p.text.trim()) { ipa = p.text.trim(); break; }
+            }
+            if (!ipa) ipa = d?.[0]?.phonetic ?? null;
+            entry.ipa = ipa || '';
+          }
+        } catch {}
+        const ipaEl = card.querySelector('.learn-card-ipa');
+        if (ipaEl) ipaEl.textContent = entry.ipa || '';
+      })();
+    }
+    container.appendChild(card);
+    return card;
+  });
+
+  // 順番にフェードイン（stagger）
+  cards.forEach((card, i) => {
+    setTimeout(() => {
+      card.classList.add('visible');
+    }, i * 80);
+  });
+}
+
+// 🔊 発音ボタン（イベント委任）
+document.getElementById('learnCardList').addEventListener('click', e => {
+  const btn = e.target.closest('.btn-speak');
+  if (!btn) return;
+  const word = btn.dataset.word;
+  if (!word) return;
+  const utter = new SpeechSynthesisUtterance(word);
+  utter.lang = 'en-US';
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+});
+
+// 単語が追加・削除されたら再レンダリングフラグをリセット
+function resetLearnSection() {
+  learnRendered = false;
+  if (learnOpen) {
+    renderLearnCards();
+    learnRendered = true;
+  }
 }
 
 /* ===== 初期化 ===== */
