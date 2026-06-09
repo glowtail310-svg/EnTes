@@ -962,15 +962,20 @@ async function fetchMeaningAndPhonetic(word) {
     if (r.ok) {
       const d = await r.json();
 
-      // IPA抽出: 全エントリ・全phoneticsを横断して最初に見つかったtextを使う
-      outer: for (const entry of (d ?? [])) {
-        // ルートの phonetic フィールド
-        if (entry.phonetic && entry.phonetic.trim()) { ipa = entry.phonetic.trim(); break; }
-        // phonetics 配列（textがあるものを優先）
-        for (const p of (entry.phonetics ?? [])) {
+      // IPA抽出: 全エントリのphonetics配列を優先して横断、なければrootのphoneticにフォールバック
+      let rootPhonetic = null;
+      outer: for (const ent of (d ?? [])) {
+        // phonetics配列でtextがあるものを優先
+        for (const p of (ent.phonetics ?? [])) {
           if (p.text && p.text.trim()) { ipa = p.text.trim(); break outer; }
         }
+        // ルートのphoneticは最後の手段として保存しておく
+        if (!rootPhonetic && ent.phonetic && ent.phonetic.trim()) {
+          rootPhonetic = ent.phonetic.trim();
+        }
       }
+      // phonetics配列で見つからなければrootのphoneticを使う
+      if (!ipa && rootPhonetic) ipa = rootPhonetic;
 
       // BenDicヒットなら意味はそちら優先
       if (dictHit) {
@@ -1299,6 +1304,8 @@ function loadWords() {
         if (dot) dot.remove();
         updateTagBadge(english, tagEl);
       }
+      // もっと覚えるセクションが開いていればカードのDOMも更新
+      updateLearnCard(english);
     });
   });
   updateCounter();
@@ -1784,6 +1791,19 @@ function createLearnCard(entry) {
   return card;
 }
 
+// カードのDOM（意味・IPA）を entry の現在値で更新する
+function updateLearnCard(english) {
+  const container = document.getElementById('learnCardList');
+  const card = container?.querySelector(`[data-learn-word="${english}"]`);
+  if (!card) return;
+  const entry = registeredWords.find(w => w.english === english);
+  if (!entry) return;
+  const ipaEl = card.querySelector('.learn-card-ipa');
+  const jpEl  = card.querySelector('.learn-card-jp');
+  if (ipaEl) ipaEl.textContent = entry.ipa || '';
+  if (jpEl)  jpEl.textContent  = entry.japanese || '…';
+}
+
 function renderLearnCards() {
   const container = document.getElementById('learnCardList');
   container.innerHTML = '';
@@ -1802,18 +1822,17 @@ function renderLearnCards() {
           const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(entry.english)}`);
           if (r.ok) {
             const d = await r.json();
-            let ipa = null;
+            let ipa = null, rootPhonetic = null;
             outer: for (const ent of (d ?? [])) {
-              if (ent.phonetic && ent.phonetic.trim()) { ipa = ent.phonetic.trim(); break; }
               for (const p of (ent.phonetics ?? [])) {
                 if (p.text && p.text.trim()) { ipa = p.text.trim(); break outer; }
               }
+              if (!rootPhonetic && ent.phonetic && ent.phonetic.trim()) rootPhonetic = ent.phonetic.trim();
             }
-            entry.ipa = ipa || '';
+            entry.ipa = ipa || rootPhonetic || '';
           }
         } catch {}
-        const ipaEl = card.querySelector('.learn-card-ipa');
-        if (ipaEl) ipaEl.textContent = entry.ipa || '';
+        updateLearnCard(entry.english);
       })();
     }
     container.appendChild(card);
