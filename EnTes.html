@@ -492,6 +492,52 @@
       font-size: 13px; color: var(--muted); font-weight: 700;
     }
 
+    /* ── IPA早見表 ── */
+    .ipa-chart-section {
+      margin-top: 28px; padding-top: 20px;
+      border-top: 1.5px solid var(--line);
+    }
+    .ipa-chart-title {
+      font-size: 13px; font-weight: 800; color: var(--muted);
+      margin-bottom: 12px; letter-spacing: .5px;
+    }
+    .ipa-chart-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .ipa-chip {
+      background: #fafbff;
+      border: 1.5px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: background .15s, transform .1s, border-color .15s;
+      user-select: none;
+    }
+    .ipa-chip:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .ipa-chip:active { transform: scale(.96); }
+    .ipa-chip .ipa-sym {
+      font-family: 'DM Mono', monospace;
+      font-size: 20px; font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .ipa-chip .ipa-desc {
+      font-size: 10px; color: var(--muted);
+      font-weight: 700; margin-top: 4px;
+      line-height: 1.3;
+    }
+    .ipa-chip .ipa-ex {
+      font-size: 11px; color: var(--accent2);
+      font-weight: 800; margin-top: 2px;
+    }
+
     @media (max-width: 480px) {
       .container { padding: 18px 14px; }
       .q-word { font-size: 28px; }
@@ -560,8 +606,92 @@
     <div class="learn-section" id="learnSection">
       <div class="learn-inner">
         <div class="learn-title">📖 発音・意味チェック</div>
-        <p>単語のスペルは発音で覚えよう！！ 発音大事！</p>
         <div id="learnCardList"></div>
+
+        <!-- ── IPA早見表 ── -->
+        <div class="ipa-chart-section">
+          <div class="ipa-chart-title">🔤 IPA 早見表（タップで発音）</div>
+          <div class="ipa-chart-grid" id="ipaChartGrid">
+            <!-- 母音 -->
+            <div class="ipa-chip" data-ipa-sound="æ" data-ipa-word="cat">
+              <div class="ipa-sym">æ</div>
+              <div class="ipa-ex">cat</div>
+              <div class="ipa-desc">短母音 ア/エ</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ɑː" data-ipa-word="car">
+              <div class="ipa-sym">ɑː</div>
+              <div class="ipa-ex">car</div>
+              <div class="ipa-desc">長母音 アー</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ʌ" data-ipa-word="cup">
+              <div class="ipa-sym">ʌ</div>
+              <div class="ipa-ex">cup</div>
+              <div class="ipa-desc">短母音 ア</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ə" data-ipa-word="about">
+              <div class="ipa-sym">ə</div>
+              <div class="ipa-ex">about</div>
+              <div class="ipa-desc">曖昧母音 ア</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ɪ" data-ipa-word="sit">
+              <div class="ipa-sym">ɪ</div>
+              <div class="ipa-ex">sit</div>
+              <div class="ipa-desc">短母音 イ</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="iː" data-ipa-word="see">
+              <div class="ipa-sym">iː</div>
+              <div class="ipa-ex">see</div>
+              <div class="ipa-desc">長母音 イー</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ʊ" data-ipa-word="book">
+              <div class="ipa-sym">ʊ</div>
+              <div class="ipa-ex">book</div>
+              <div class="ipa-desc">短母音 ウ</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="uː" data-ipa-word="food">
+              <div class="ipa-sym">uː</div>
+              <div class="ipa-ex">food</div>
+              <div class="ipa-desc">長母音 ウー</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="e" data-ipa-word="bed">
+              <div class="ipa-sym">e</div>
+              <div class="ipa-ex">bed</div>
+              <div class="ipa-desc">短母音 エ</div>
+            </div>
+            <!-- 子音 -->
+            <div class="ipa-chip" data-ipa-sound="θ" data-ipa-word="think">
+              <div class="ipa-sym">θ</div>
+              <div class="ipa-ex">think</div>
+              <div class="ipa-desc">無声 ス/ス</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ð" data-ipa-word="this">
+              <div class="ipa-sym">ð</div>
+              <div class="ipa-ex">this</div>
+              <div class="ipa-desc">有声 ズ</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ʃ" data-ipa-word="she">
+              <div class="ipa-sym">ʃ</div>
+              <div class="ipa-ex">she</div>
+              <div class="ipa-desc">無声 シュ</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ʒ" data-ipa-word="measure">
+              <div class="ipa-sym">ʒ</div>
+              <div class="ipa-ex">measure</div>
+              <div class="ipa-desc">有声 ジュ</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="ŋ" data-ipa-word="sing">
+              <div class="ipa-sym">ŋ</div>
+              <div class="ipa-ex">sing</div>
+              <div class="ipa-desc">鼻音 ング</div>
+            </div>
+            <div class="ipa-chip" data-ipa-sound="r" data-ipa-word="red">
+              <div class="ipa-sym">r</div>
+              <div class="ipa-ex">red</div>
+              <div class="ipa-desc">英語の r</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -832,12 +962,15 @@ async function fetchMeaningAndPhonetic(word) {
     if (r.ok) {
       const d = await r.json();
 
-      // IPA抽出
-      const phonetics = d?.[0]?.phonetics ?? [];
-      for (const p of phonetics) {
-        if (p.text && p.text.trim()) { ipa = p.text.trim(); break; }
+      // IPA抽出: 全エントリ・全phoneticsを横断して最初に見つかったtextを使う
+      outer: for (const entry of (d ?? [])) {
+        // ルートの phonetic フィールド
+        if (entry.phonetic && entry.phonetic.trim()) { ipa = entry.phonetic.trim(); break; }
+        // phonetics 配列（textがあるものを優先）
+        for (const p of (entry.phonetics ?? [])) {
+          if (p.text && p.text.trim()) { ipa = p.text.trim(); break outer; }
+        }
       }
-      if (!ipa) ipa = d?.[0]?.phonetic ?? null;
 
       // BenDicヒットなら意味はそちら優先
       if (dictHit) {
@@ -1000,6 +1133,8 @@ async function addTag(word) {
     }
     updateTagBadge(word, tagEl);
   }
+  // もっと覚えるセクションが開いていたらカードを1枚追加
+  if (learnOpen) appendLearnCard(entry);
 }
 
 function renderTag(entry, loading = false) {
@@ -1618,6 +1753,37 @@ document.getElementById('learnMoreBtn').addEventListener('click', () => {
   }
 });
 
+function appendLearnCard(entry) {
+  const container = document.getElementById('learnCardList');
+  // 「まだ単語が登録されていません」表示を消す
+  const empty = container.querySelector('.learn-loading');
+  if (empty) empty.remove();
+  // 既に同じ単語のカードがあればスキップ
+  if (container.querySelector(`[data-learn-word="${entry.english}"]`)) return;
+
+  const card = createLearnCard(entry);
+  container.appendChild(card);
+  // 1フレーム後にフェードイン
+  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('visible')));
+}
+
+function createLearnCard(entry) {
+  const card = document.createElement('div');
+  card.className = 'learn-card';
+  card.dataset.learnWord = entry.english;
+  card.innerHTML = `
+    <div class="learn-card-top">
+      <div>
+        <div class="learn-card-word">${entry.english}</div>
+        <div class="learn-card-ipa">${entry.ipa || ''}</div>
+        <div class="learn-card-jp">${entry.japanese || '…'}</div>
+      </div>
+      <button class="btn-speak" data-word="${entry.english}" title="発音を聞く">🔊</button>
+    </div>
+  `;
+  return card;
+}
+
 function renderLearnCards() {
   const container = document.getElementById('learnCardList');
   container.innerHTML = '';
@@ -1627,33 +1793,22 @@ function renderLearnCards() {
     return;
   }
 
-  // カードを作成（最初は非表示）
-  const cards = registeredWords.map((entry, i) => {
-    const card = document.createElement('div');
-    card.className = 'learn-card';
-    card.innerHTML = `
-      <div class="learn-card-top">
-        <div>
-          <div class="learn-card-word">${entry.english}</div>
-          <div class="learn-card-ipa">${entry.ipa ? entry.ipa : '<span style="opacity:.4;font-size:12px;">IPA取得中…</span>'}</div>
-          <div class="learn-card-jp">${entry.japanese || '…'}</div>
-        </div>
-        <button class="btn-speak" data-word="${entry.english}" title="発音を聞く">🔊</button>
-      </div>
-    `;
-    // IPAがまだなら非同期で補完（意味は取得済みなのでIPA専用で軽量fetch）
+  const cards = registeredWords.map(entry => {
+    const card = createLearnCard(entry);
+    // IPAがまだなら非同期で補完
     if (!entry.ipa) {
       (async () => {
         try {
           const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(entry.english)}`);
           if (r.ok) {
             const d = await r.json();
-            const phonetics = d?.[0]?.phonetics ?? [];
             let ipa = null;
-            for (const p of phonetics) {
-              if (p.text && p.text.trim()) { ipa = p.text.trim(); break; }
+            outer: for (const ent of (d ?? [])) {
+              if (ent.phonetic && ent.phonetic.trim()) { ipa = ent.phonetic.trim(); break; }
+              for (const p of (ent.phonetics ?? [])) {
+                if (p.text && p.text.trim()) { ipa = p.text.trim(); break outer; }
+              }
             }
-            if (!ipa) ipa = d?.[0]?.phonetic ?? null;
             entry.ipa = ipa || '';
           }
         } catch {}
@@ -1693,6 +1848,18 @@ function resetLearnSection() {
     learnRendered = true;
   }
 }
+
+// 🔤 IPA早見表タップ → 例単語を発音
+document.getElementById('ipaChartGrid').addEventListener('click', e => {
+  const chip = e.target.closest('.ipa-chip');
+  if (!chip) return;
+  const word = chip.dataset.ipaWord;
+  if (!word) return;
+  const utter = new SpeechSynthesisUtterance(word);
+  utter.lang = 'en-US';
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+});
 
 /* ===== 初期化 ===== */
 loadBenDic().then(() => {
